@@ -446,7 +446,7 @@ function getBase(){
     valor:    parseFloat((r['VALOR TOTAL']||'0').replace(/[^0-9.]/g,''))||0,
     ambientes:parseInt(r['TOTAL AMBIENTES']||'0')||0,
     estado:   r['ESTADO DEL ACTA']      || '',
-    avance:   parseFloat((r['% AVANCE EJECUTADO DE OBRA']||'0').replace(',','.'))*100 || 0,
+    avance:   (()=>{ const v=parseFloat((r['% AVANCE EJECUTADO DE OBRA']||'0').replace(',','.')); return v>1 ? v : v*100; })() || 0,
     semaforo: r['Semáforo PM']          || 'Gris',
     en_plan:  r['En plan mes activo']   || '',
   })).filter(r=>
