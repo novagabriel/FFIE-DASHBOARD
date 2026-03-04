@@ -219,7 +219,7 @@ body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--txt);font-
       </div>
     </div>
     <div class="hr2">
-      <div class="hbg"><div class="hbl">Mes activo</div><div class="hbv" id="hmes">—</div></div>
+      <div class="hbg" style="padding:4px 10px"><div class="hbl">Mes visualizado</div><select id="mes-sel" onchange="cambiarMes(this.value)" style="background:transparent;border:none;color:#fff;font-family:Barlow,sans-serif;font-size:13px;font-weight:700;cursor:pointer;outline:none;margin-top:2px;width:100%;-webkit-appearance:auto"><option value="">Cargando…</option></select></div>
       <div class="hbg"><div class="hbl">Última carga</div><div class="hbv" id="hupd">—</div></div>
       <button class="rbtn" onclick="cargar(true)" id="rbtn"><span class="ri">🔄</span> Actualizar</button>
       <div class="lchip"><div class="ldot"></div>En vivo</div>
@@ -353,12 +353,12 @@ body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--txt);font-
 <script>
 /* ══ URLs ══ */
 const U={
-  base:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6hh1EfZwAn2ziUXvPleW9dhW16K31BMFATqPgseuDQDqaz0Alk9Q95eAKVRiEk1E24cduIt4izdDe/pub?gid=739212068&single=true&output=csv',
-  vis:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6hh1EfZwAn2ziUXvPleW9dhW16K31BMFATqPgseuDQDqaz0Alk9Q95eAKVRiEk1E24cduIt4izdDe/pub?gid=100256449&single=true&output=csv',
-  nuevos: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6hh1EfZwAn2ziUXvPleW9dhW16K31BMFATqPgseuDQDqaz0Alk9Q95eAKVRiEk1E24cduIt4izdDe/pub?gid=23880054&single=true&output=csv',
-  mcm:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6hh1EfZwAn2ziUXvPleW9dhW16K31BMFATqPgseuDQDqaz0Alk9Q95eAKVRiEk1E24cduIt4izdDe/pub?gid=1133866108&single=true&output=csv',
-  riesgos:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6hh1EfZwAn2ziUXvPleW9dhW16K31BMFATqPgseuDQDqaz0Alk9Q95eAKVRiEk1E24cduIt4izdDe/pub?gid=157593913&single=true&output=csv',
-  resumen:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6hh1EfZwAn2ziUXvPleW9dhW16K31BMFATqPgseuDQDqaz0Alk9Q95eAKVRiEk1E24cduIt4izdDe/pub?gid=1987171543&single=true&output=csv',
+  base:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6hh1EfZwAn2ziUXvPleW9dhW16K31BMFATqPgseuDQDqaz0Alk9Q95eAKVRiEk1E24cduIt4izdDe/pub?gid=1183533824&single=true&output=csv',
+  vis:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6hh1EfZwAn2ziUXvPleW9dhW16K31BMFATqPgseuDQDqaz0Alk9Q95eAKVRiEk1E24cduIt4izdDe/pub?gid=649123205&single=true&output=csv',
+  nuevos: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6hh1EfZwAn2ziUXvPleW9dhW16K31BMFATqPgseuDQDqaz0Alk9Q95eAKVRiEk1E24cduIt4izdDe/pub?gid=1712470185&single=true&output=csv',
+  mcm:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6hh1EfZwAn2ziUXvPleW9dhW16K31BMFATqPgseuDQDqaz0Alk9Q95eAKVRiEk1E24cduIt4izdDe/pub?gid=1899310363&single=true&output=csv',
+  riesgos:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6hh1EfZwAn2ziUXvPleW9dhW16K31BMFATqPgseuDQDqaz0Alk9Q95eAKVRiEk1E24cduIt4izdDe/pub?gid=851742834&single=true&output=csv',
+  resumen:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6hh1EfZwAn2ziUXvPleW9dhW16K31BMFATqPgseuDQDqaz0Alk9Q95eAKVRiEk1E24cduIt4izdDe/pub?gid=1474652428&single=true&output=csv',
 };
 
 let D={base:[],vis:[],nuevos:[],mcm:[],riesgos:[],resumen:[]};
@@ -457,16 +457,43 @@ function getBase(){
   );
 }
 
-function getMes(){
-  // El mes activo está en B1 del Excel, que en el CSV aparece como
-  // el VALUE de la columna "Mes activo (YYYY-MM)" en la primera fila — pero esa fila ES el header
-  // Buscamos en el primer row el campo que tiene formato YYYY-MM
+let MES_ACTIVO = '';
+
+function detectarMesActivo(){
+  // Busca el primer valor YYYY-MM en BASE_PM
   for(const row of D.base){
     for(const val of Object.values(row)){
-      if(val && /^\d{4}-\d{2}$/.test(val.trim())) return val.trim();
+      if(val && /^\d{4}-\d{2}$/.test((val||'').trim())) return val.trim();
     }
   }
   return '2026-02';
+}
+
+function getMes(){
+  return MES_ACTIVO || detectarMesActivo();
+}
+
+function poblarSelectorMes(mcm){
+  const sel = document.getElementById('mes-sel');
+  const meses = mcm.map(r=>r.mes).filter(m=>m&&/^\d{4}-\d{2}$/.test(m));
+  if(!meses.length){ sel.innerHTML='<option>Sin datos</option>'; return; }
+  const mesActivo = detectarMesActivo();
+  sel.innerHTML = meses.map(m=>
+    `<option value="${m}" ${m===mesActivo?'selected':''}>${m}</option>`
+  ).join('');
+  MES_ACTIVO = mesActivo;
+}
+
+function cambiarMes(mes){
+  MES_ACTIVO = mes;
+  const base=getBase(),mcm=getMCM(),res=getResumen(),vis=getVis(),riesgos=getRiesgos();
+  rGauges(res,mcm,mes);
+  rMCM(mcm,mes);
+  rPendientes(vis,mes);
+  // Actualizar titulo
+  document.querySelectorAll('.st').forEach(el=>{
+    if(el.textContent.includes('Mes activo')) el.querySelector('.sa') && (el.innerHTML=el.innerHTML.replace(/\.+$/,'· '+mes));
+  });
 }
 
 function getNuevos(){
@@ -578,10 +605,11 @@ function pctbar(v,col){
 function render(){
   const base=getBase(),nuevos=getNuevos(),mcm=getMCM(),res=getResumen(),
         riesgos=getRiesgos(),vis=getVis(),mes=getMes();
-  document.getElementById('hmes').textContent=mes;
+  
 
   console.log('Proyectos parseados:',base.length,'Mes:',mes);
 
+  poblarSelectorMes(mcm);
   rKPIs(base,nuevos);
   rGauges(res,mcm,mes);
   rCoordBars(base);
