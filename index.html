@@ -434,39 +434,42 @@ async function cargar(manual=false){
 
 /* ══ PARSERS por nombre de columna (robusto ante cambios de orden) ══ */
 function getBase(){
-  // La fila 1 del CSV tiene: "Mes activo (YYYY-MM)", "2026-02", "MUNICIPIO", ...
-  // La coordinacion esta en la columna A = "Mes activo (YYYY-MM)" (mal nombre pero ese es el header)
-  // Usamos los headers exactos que vimos en el Excel
+  const mes = getMes();
   return D.base.map(r=>({
-    coord:    r['Mes activo (YYYY-MM)'] || '',   // Col A = COORDINACIÓN
+    mes:      r['Mes (YYYY-MM)']        || '',
+    coord:    r['COORDINACIÓN']         || r['COORDINACION'] || '',
     municipio:r['MUNICIPIO']            || '',
     dane:     r['CODIGO DANE SEDE']     || '',
     ie:       r['INSTITUCION EDUCATIVA']|| '',
     sede:     r['SEDE']                 || '',
-    valor:    parseFloat((r['VALOR TOTAL']||'0').replace(/[^0-9.]/g,''))||0,
+    valor:    parseFloat((r['VALOR TOTAL']||'$0').replace(/[^0-9.]/g,''))||0,
     ambientes:parseInt(r['TOTAL AMBIENTES']||'0')||0,
     estado:   r['ESTADO DEL ACTA']      || '',
-    avance:   (()=>{ const v=parseFloat((r['% AVANCE EJECUTADO DE OBRA']||'0').replace(',','.')); return v>1 ? v : v*100; })() || 0,
-    semaforo: r['Semáforo PM']          || 'Gris',
-    en_plan:  r['En plan mes activo']   || '',
+    avance:   (()=>{ const raw=(r['% AVANCE EJECUTADO DE OBRA']||'0').replace('%','').replace(',','.').trim(); const v=parseFloat(raw)||0; return v>1?v:v*100; })(),
+    semaforo: r['Semáforo PM']          || r['Semaforo PM'] || 'Gris',
+    en_plan:  r['Visita Mes (Sí/No)']   || '',
   })).filter(r=>
-    r.ie && r.ie!=='' &&
+    r.mes === mes &&
+    r.ie && r.ie.trim()!=='' &&
     r.ie!=='INSTITUCION EDUCATIVA' &&
-    r.coord && r.coord!=='' &&
-    r.coord!=='Mes activo (YYYY-MM)'  // filtra la fila de header
+    r.coord && r.coord.trim()!=='' &&
+    r.coord!=='COORDINACIÓN'
   );
+}
+
+function detectarMesActivoDeBase(){
+  // Toma el mes más reciente de BASE_PM
+  const meses = D.base.map(r=>r['Mes (YYYY-MM)']||'').filter(m=>/^\d{4}-\d{2}$/.test(m));
+  if(!meses.length) return '2026-02';
+  return meses.sort().reverse()[0];
 }
 
 let MES_ACTIVO = '';
 
 function detectarMesActivo(){
-  // Busca el primer valor YYYY-MM en BASE_PM
-  for(const row of D.base){
-    for(const val of Object.values(row)){
-      if(val && /^\d{4}-\d{2}$/.test((val||'').trim())) return val.trim();
-    }
-  }
-  return '2026-02';
+  const meses = D.base.map(r=>(r['Mes (YYYY-MM)']||'').trim()).filter(m=>/^\d{4}-\d{2}$/.test(m));
+  if(!meses.length) return '2026-02';
+  return meses.sort().reverse()[0];
 }
 
 function getMes(){
@@ -608,6 +611,8 @@ function render(){
   
 
   console.log('Proyectos parseados:',base.length,'Mes:',mes);
+  if(base.length>0) console.log('Primer proyecto:',base[0]);
+  else console.warn('⚠️ getBase() devolvió 0 — keys raw:',Object.keys(D.base[0]||{}));
 
   poblarSelectorMes(mcm);
   rKPIs(base,nuevos);
